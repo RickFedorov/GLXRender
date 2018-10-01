@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -12,7 +13,7 @@ import android.view.View;
 import com.github.glxrender.glx.Galaxy;
 import com.github.glxrender.glx.SpaceObject;
 
-public class GLXView extends View implements ScaleGestureDetector.OnScaleGestureListener {
+public class GLXView extends View implements ScaleGestureDetector.OnScaleGestureListener, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
 
     private Galaxy galaxy;
 
@@ -59,12 +60,15 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
 
     private void init(Context context){
         final ScaleGestureDetector scaleDetector = new ScaleGestureDetector(context, this);
+        final GestureDetector gestureDetector = new GestureDetector(context,this);
+        gestureDetector.setOnDoubleTapListener(this);
+
         this.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 switch (motionEvent.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
-                        if (scale > MIN_ZOOM) {
+                        if (scale >= MIN_ZOOM) {
                             mode = Mode.DRAG;
                             startX = motionEvent.getX() - prevDx;
                             startY = motionEvent.getY() - prevDy;
@@ -86,15 +90,17 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
                         mode = Mode.NONE;
                         prevDx = dx;
                         prevDy = dy;
-                        Log.e("GLXrender", "drag:"+dx +"," + dy);
-                        view.invalidate();
                         break;
                 }
                 scaleDetector.onTouchEvent(motionEvent);
+                gestureDetector.onTouchEvent(motionEvent);
+
 
                 if ((mode == Mode.DRAG && scale >= MIN_ZOOM) || mode == Mode.ZOOM) {
                     getParent().requestDisallowInterceptTouchEvent(true);
                 }
+
+                view.invalidate();
 
                 return true;
             }
@@ -133,7 +139,7 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        Log.e("GLXrender", "onDraw");
+        //Log.e("GLXrender", "onDraw");
 
         int xMult =  (int) (width / galaxy.getSize() * scale);
         int yMult =  (int) (height / galaxy.getSize() * scale);
@@ -163,17 +169,71 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
             lastScaleFactor = 0;
         }
         Log.e("GLXrender", "scale:"+scale);
-        invalidate();
         return true;
     }
 
     @Override
     public boolean onScaleBegin(ScaleGestureDetector scaleGestureDetector) {  //NOT USED
         return true;
+    } //NOT USED
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector scaleGestureDetector) {}//NOT USED
+
+    @Override
+    public boolean onDown(MotionEvent motionEvent) {
+        return false;
     }
 
     @Override
-    public void onScaleEnd(ScaleGestureDetector scaleGestureDetector) { //NOT USED
+    public void onShowPress(MotionEvent motionEvent) {
 
+    }
+
+    @Override
+    public boolean onSingleTapUp(MotionEvent motionEvent) {
+        return false;
+    }
+
+    @Override
+    public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        return false;
+    }
+
+    @Override
+    public void onLongPress(MotionEvent motionEvent) {
+
+    }
+
+    @Override
+    public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        return false;
+    }
+
+    @Override
+    public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
+        return false;
+    }
+
+    @Override
+    public boolean onDoubleTap(MotionEvent motionEvent) {
+        mode = Mode.NONE;
+        scale = 1.0f;
+        lastScaleFactor = 0f;
+
+        startX = 0f;
+        startY = 0f;
+
+        dx = 0f;
+        dy = 0f;
+        prevDx = 0f;
+        prevDy = 0f;
+        
+        return true;
+    }
+
+    @Override
+    public boolean onDoubleTapEvent(MotionEvent motionEvent) {
+        return false;
     }
 }
