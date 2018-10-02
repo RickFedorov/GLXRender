@@ -10,6 +10,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
+import com.github.glxrender.engine.Support;
 import com.github.glxrender.glx.Galaxy;
 import com.github.glxrender.glx.SpaceObject;
 
@@ -19,6 +20,10 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
 
     private int width;
     private int height;
+    private float xMulti;
+    private float yMulti;
+
+    private static final float OBJECT_SIZE = 5;
 
     private BasePaint backgroundPaint;
     private BasePaint dotPaint;
@@ -33,7 +38,7 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
     }
 
     private static final float MIN_ZOOM = 1.0f;
-    private static final float MAX_ZOOM = 4.0f;
+    private static final float MAX_ZOOM = 10.0f;
 
     private Mode mode = Mode.NONE;
     private float scale = 1.0f;
@@ -134,6 +139,9 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
 
         height = getMeasuredHeight();
         width = getMeasuredWidth();
+        xMulti =  width / galaxy.getSize();
+        yMulti =  height / galaxy.getSize();
+        invalidate();
     }
 
     @Override
@@ -141,20 +149,44 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
         super.onDraw(canvas);
         //Log.e("GLXrender", "onDraw");
 
-        int xMult =  (int) (width / galaxy.getSize() * scale);
-        int yMult =  (int) (height / galaxy.getSize() * scale);
-        int xCorr = (int) dx;
-        int yCorr = (int) dy;
-
-
         //canvas.drawPaint(backgroundPaint);
 
         for (SpaceObject ob:
              galaxy.getSpaceObjects()) {
-            canvas.drawCircle(xCorr + ob.getX()*xMult, yCorr + ob.getY()*yMult, 5*scale, dotPaint);
-            canvas.drawText(ob.toString(),xCorr + ob.getX()*xMult + 5, yCorr +  ob.getY()*yMult + 5, dotPaint);
+            canvas.drawCircle(ob.getXView(), ob.getYView(), OBJECT_SIZE *scale, dotPaint);
+            canvas.drawText(ob.toString(),ob.getXView() + OBJECT_SIZE, ob.getYView() + OBJECT_SIZE, dotPaint);
         }
 
+    }
+
+    private SpaceObject checkTouchCoordinates(MotionEvent motionEvent){
+        //TODO once galaxy update
+
+        final int meX = (int) motionEvent.getX();
+        final int meY = (int) motionEvent.getY();
+
+        for (SpaceObject ob:
+                galaxy.getSpaceObjects()) {
+           if ((ob.getXView() - OBJECT_SIZE * scale) <= meX &&
+                   (ob.getXView() + OBJECT_SIZE * scale) >= meX &&
+                   (ob.getYView() - OBJECT_SIZE * scale) <= meY &&
+                   (ob.getYView() + OBJECT_SIZE * scale) >= meY
+                   ){
+               return ob;
+           }
+        }
+
+        return null;
+    }
+
+    @Override
+    public void invalidate() {
+        for (SpaceObject ob:
+                galaxy.getSpaceObjects()) {
+                ob.setXYView( xMulti, yMulti, dx, dy, scale);
+        }
+
+        super.invalidate();
     }
 
     @Override
@@ -202,7 +234,9 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
 
     @Override
     public void onLongPress(MotionEvent motionEvent) {
-
+        if (!Support.isEmpty(checkTouchCoordinates(motionEvent))){
+            Log.e("GLXrender","Press Find " + checkTouchCoordinates(motionEvent).toString());
+        }
     }
 
     @Override
@@ -212,7 +246,11 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
-        return false;
+        if (!Support.isEmpty(checkTouchCoordinates(motionEvent))){
+            Log.e("GLXrender","Tap Find " + checkTouchCoordinates(motionEvent).toString());
+        }
+
+        return true;
     }
 
     @Override
