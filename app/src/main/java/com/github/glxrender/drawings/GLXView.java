@@ -9,21 +9,24 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 
+import com.github.glxrender.R;
 import com.github.glxrender.engine.Support;
 import com.github.glxrender.glx.Galaxy;
 import com.github.glxrender.glx.SpaceObject;
+import com.github.glxrender.ui.BaseActivity;
 
 public class GLXView extends View implements ScaleGestureDetector.OnScaleGestureListener, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
 
     private Galaxy galaxy;
 
-    private int width;
-    private int height;
-    private float xMulti;
-    private float yMulti;
+    private int xCenterAdj;
+    private int yCenterAdj;
 
-    private static final float OBJECT_SIZE = 5;
+
+    public static final float OBJECT_SIZE = 5;
 
     private BasePaint backgroundPaint;
     private BasePaint dotPaint;
@@ -52,6 +55,8 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
     private float prevDx = 0f;
     private float prevDy = 0f;
 
+    private ObjectInfo objectInfo;
+    private boolean objectInfoLongpress = false;
 
     public GLXView(Context context) {
         super(context);
@@ -95,6 +100,7 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
                         mode = Mode.NONE;
                         prevDx = dx;
                         prevDy = dy;
+                        checkObjectInfoDisplay();
                         break;
                 }
                 scaleDetector.onTouchEvent(motionEvent);
@@ -137,10 +143,10 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         Log.e("GLXrender", "onMeasure");
 
-        height = getMeasuredHeight();
-        width = getMeasuredWidth();
-        xMulti =  width / galaxy.getSize();
-        yMulti =  height / galaxy.getSize();
+        xCenterAdj = (getContext().getResources().getDisplayMetrics().widthPixels - galaxy.getSize())/2;
+        yCenterAdj = (getContext().getResources().getDisplayMetrics().heightPixels - galaxy.getSize())/2;
+
+
         invalidate();
     }
 
@@ -154,7 +160,7 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
         for (SpaceObject ob:
              galaxy.getSpaceObjects()) {
             canvas.drawCircle(ob.getXView(), ob.getYView(), OBJECT_SIZE *scale, dotPaint);
-            canvas.drawText(ob.toString(),ob.getXView() + OBJECT_SIZE, ob.getYView() + OBJECT_SIZE, dotPaint);
+            //canvas.drawText(ob.toString(),ob.getXView() + OBJECT_SIZE, ob.getYView() + OBJECT_SIZE, dotPaint);
         }
 
     }
@@ -179,11 +185,19 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
         return null;
     }
 
+    private void checkObjectInfoDisplay(){
+        if (objectInfoLongpress && !Support.isEmpty(objectInfo)){
+            ((ViewGroup) objectInfo.getParent()).removeView(objectInfo);
+            objectInfoLongpress = false;
+        }
+    }
+
     @Override
     public void invalidate() {
+
         for (SpaceObject ob:
                 galaxy.getSpaceObjects()) {
-                ob.setXYView( xMulti, yMulti, dx, dy, scale);
+                ob.setXYView( xCenterAdj, yCenterAdj, dx, dy, scale);
         }
 
         super.invalidate();
@@ -234,8 +248,14 @@ public class GLXView extends View implements ScaleGestureDetector.OnScaleGesture
 
     @Override
     public void onLongPress(MotionEvent motionEvent) {
-        if (!Support.isEmpty(checkTouchCoordinates(motionEvent))){
-            Log.e("GLXrender","Press Find " + checkTouchCoordinates(motionEvent).toString());
+        SpaceObject spaceObject = checkTouchCoordinates(motionEvent);
+
+        if (!Support.isEmpty(spaceObject)){
+            RelativeLayout rl = (RelativeLayout) ((BaseActivity) getContext()).findViewById(R.id.GLXlayout);
+
+            objectInfo = new ObjectInfo(getContext(),spaceObject);
+            rl.addView(objectInfo, objectInfo.getParams());
+            objectInfoLongpress = true;
         }
     }
 
