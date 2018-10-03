@@ -25,9 +25,9 @@ public class SpaceObject {
      * @param dy    drag movement on y
      * @param scale scale factor
      */
-    public void setXYView(float xMulti, float yMulti, float dx, float dy, float scale) {
-        xView = (int) (dx + x * xMulti * scale);
-        yView = (int) (dy + y * yMulti * scale);
+    public void setXYView(int xCenterAdj, int yCenterAdj, float dx, float dy, float scale) {
+        xView = (int) ((dx + x + xCenterAdj) * scale);
+        yView = (int) ((dy + y + yCenterAdj) * scale);
     }
 
 
